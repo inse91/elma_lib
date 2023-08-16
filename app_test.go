@@ -117,6 +117,7 @@ func TestElmaApp(t *testing.T) {
 					"price":  AppNumberFilter(50, 200),
 					//"__deletedAt": AppDateFilter(),
 				},
+
 				IDs: []string{
 					"26cc4e77-0f02-44ae-a92f-0a34b8a6f4fc",
 					"b937afb7-df6e-4c95-9076-5018f36a6ee7",
