@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 const url = "https://q3bamvpkvrulg.elma365.ru"
@@ -40,6 +41,24 @@ func TestElmaApp(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, item)
 		fmt.Println(item.ID)
+	})
+
+	t.Run("create_many", func(t *testing.T) {
+		for i := 0; i < 1000; i++ {
+
+			item, err := goods.Create(&Product{
+				Common: Common{
+					Name: "test1",
+				},
+				Price: 10,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, item)
+			fmt.Println(i, item.ID)
+			time.Sleep(time.Millisecond * 500)
+
+		}
+
 	})
 
 	t.Run("update", func(t *testing.T) {
@@ -111,10 +130,10 @@ func TestElmaApp(t *testing.T) {
 		})
 
 		t.Run("search_first_filter", func(t *testing.T) {
-			item, err := goods.Search(SearchFilter{
+			item, err := goods.Search().Where(SearchFilter{
 				Fields: Fields{
 					"__name": "Мясо",
-					"price":  AppNumberFilter(50, 200),
+					"price":  AppNumberFilter(50, 500),
 					//"__deletedAt": AppDateFilter(),
 				},
 
@@ -136,13 +155,13 @@ func TestElmaApp(t *testing.T) {
 		})
 
 		t.Run("search_all", func(t *testing.T) {
-			items, err := goods.Search().All()
+			items, err := goods.Search().Size(95).All()
 			require.NoError(t, err)
-			require.Equal(t, 5, len(items))
+			require.Equal(t, 95, len(items))
 		})
 
 		t.Run("search_all_filter", func(t *testing.T) {
-			items, err := goods.Search(SearchFilter{
+			items, err := goods.Search().Where(SearchFilter{
 				Fields: Fields{
 					"price": AppNumberFilter(50, 200),
 				},
@@ -151,11 +170,41 @@ func TestElmaApp(t *testing.T) {
 			require.Equal(t, 4, len(items))
 		})
 
-		t.Run("search_all_include_del", func(t *testing.T) {
-			items, err := goods.Search().IncludeDeleted().All()
+		t.Run("search_all_filter", func(t *testing.T) {
+			items, err := goods.Search().Where(SearchFilter{
+				Fields: Fields{
+					"price":  AppNumberFilter(50, 500),
+					"__name": "Мясо",
+				},
+			}).All()
 			require.NoError(t, err)
-			require.Equal(t, 16, len(items))
+			require.Equal(t, 1, len(items))
 		})
+
+		t.Run("search_all_include_del", func(t *testing.T) {
+			items, err := goods.Search().IncludeDeleted().Size(23).All()
+			require.NoError(t, err)
+			require.Equal(t, 23, len(items))
+		})
+
+		t.Run("search_where", func(t *testing.T) {
+			items, err := goods.Search().Where(SearchFilter{
+				Fields: Fields{
+					"price":  AppNumberFilter(50, 500),
+					"__name": "Мясо",
+				},
+			}).Size(1).All()
+			require.NoError(t, err)
+			require.Equal(t, 1, len(items))
+		})
+
+		t.Run("search_all_at_once", func(t *testing.T) {
+			items, err := goods.Search().AllAtOnce()
+			require.NoError(t, err)
+			require.Equal(t, 416, len(items))
+
+		})
+
 	})
 
 }

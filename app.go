@@ -48,7 +48,7 @@ func NewApp[T interface{}](settings AppSettings) App[T] {
 		stand: settings.Stand,
 		url:   url,
 		client: &http.Client{
-			Timeout: time.Second * 3,
+			Timeout: time.Second * 5,
 		},
 		fClient: &fasthttp.Client{
 			Name:                          "",
