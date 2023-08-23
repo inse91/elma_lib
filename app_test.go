@@ -32,7 +32,7 @@ func TestElmaApp(t *testing.T) {
 	})
 
 	t.Run("create_item", func(t *testing.T) {
-		item, err := goods.Create(&Product{
+		item, err := goods.Create(Product{
 			Common: Common{
 				Name: "test1",
 			},
@@ -46,7 +46,7 @@ func TestElmaApp(t *testing.T) {
 	t.Run("create_many", func(t *testing.T) {
 		for i := 0; i < 1000; i++ {
 
-			item, err := goods.Create(&Product{
+			item, err := goods.Create(Product{
 				Common: Common{
 					Name: "test1",
 				},
@@ -62,7 +62,7 @@ func TestElmaApp(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		item, err := goods.Update("0189f301-b06f-1ac3-f257-99628aa722de", &Product{
+		item, err := goods.Update("0189f301-b06f-1ac3-f257-99628aa722de", Product{
 			Common: Common{
 				Name: "test1",
 			},
@@ -104,7 +104,7 @@ func TestElmaApp(t *testing.T) {
 					SortExpressions: []SortExpression{
 						{Ascending: true, Field: "price"},
 					},
-					InStatuses: []string{
+					AtStatus: []string{
 						"st1",
 					},
 					StatusGroupId: "",
@@ -144,7 +144,7 @@ func TestElmaApp(t *testing.T) {
 				SortExpressions: []SortExpression{
 					{Ascending: true, Field: "price"},
 				},
-				InStatuses: []string{
+				AtStatus: []string{
 					"st1",
 				},
 				StatusGroupId: "",

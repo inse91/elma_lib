@@ -7,11 +7,11 @@ type respCommon struct {
 
 type itemResponse[T interface{}] struct {
 	respCommon
-	Item *T `json:"item"`
+	Item T `json:"item"`
 }
 
 type createItemRequest[T interface{}] struct {
-	Context *T `json:"context"`
+	Context T `json:"context"`
 }
 
 type setStatusRequest struct {
@@ -39,4 +39,24 @@ type appListResult[T interface{}] struct {
 
 type runProcRequest[T interface{}] struct {
 	Context T `json:"context"`
+}
+
+type runProcessResponse[T interface{}] struct {
+	respCommon
+	Context ProcessContext `json:"context"`
+}
+
+type getFileLinkResp struct {
+	respCommon
+	Link string `json:"Link"`
+}
+
+type fileResponse struct {
+	respCommon
+	File File `json:"file"`
+}
+
+type dirInfoResponse struct {
+	respCommon
+	Directory DirectoryInfo `json:"directory"`
 }

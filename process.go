@@ -62,7 +62,7 @@ func (proc Process[T]) Run(ctx T) (string, error) {
 		return "", fmt.Errorf("%w: %d", ErrResponseNotOK, response.StatusCode)
 	}
 
-	ir := new(processResponse)
+	ir := new(runProcessResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
 		return "", fmt.Errorf("failed decoding response body: %w", err)
 	}

@@ -33,9 +33,6 @@ func (app App[T]) find(f filter) ([]T, error) {
 		_ = response.Body.Close()
 	}()
 
-	//bts1, err := io.ReadAll(response.Body)
-	//_ = bts1
-
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%w: %d", ErrResponseNotOK, response.StatusCode)
 	}
@@ -53,18 +50,6 @@ func (app App[T]) find(f filter) ([]T, error) {
 
 }
 
-//func (app App[T]) Search(sf ...SearchFilter) searchInstance[T] {
-//	return searchInstance[T]{
-//		search: func() SearchFilter {
-//			if len(sf) == 0 {
-//				return SearchFilter{}
-//			}
-//			return sf[0]
-//		}(),
-//		app: &app,
-//	}
-//}
-
 func (app App[T]) Search() searchInstance[T] {
 	return searchInstance[T]{
 		app: &app,
@@ -72,9 +57,6 @@ func (app App[T]) Search() searchInstance[T] {
 }
 
 func (s searchInstance[T]) All() ([]T, error) {
-	if s.size == 0 {
-		s.size = 10
-	}
 	items, err := s.app.find(filter{
 		From:         s.from,
 		Size:         s.size,
@@ -84,15 +66,15 @@ func (s searchInstance[T]) All() ([]T, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return items, nil
 }
 
 func (s searchInstance[T]) AllAtOnce() ([]T, error) {
 
-	ctx, _ := context.WithCancel(context.Background())
-	eg, _ := errgroup.WithContext(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	eg, _ := errgroup.WithContext(ctx)
 	eg.SetLimit(10)
 
 	ErrNoMoreItems := errors.New("no more items")
@@ -108,9 +90,11 @@ func (s searchInstance[T]) AllAtOnce() ([]T, error) {
 				SearchFilter: s.search,
 			})
 			if err != nil {
+				cancel()
 				return err
 			}
 			if len(items) == 0 {
+				cancel()
 				return ErrNoMoreItems
 			}
 
@@ -170,7 +154,7 @@ type SearchFilter struct {
 	Fields          Fields           `json:"filter"`
 	IDs             []string         `json:"ids,omitempty"`
 	SortExpressions []SortExpression `json:"sortExpressions,omitempty"`
-	InStatuses      []string         `json:"statusCode,omitempty"`
+	AtStatus        []string         `json:"statusCode,omitempty"`
 	StatusGroupId   string           `json:"statusGroupId,omitempty"`
 }
 
@@ -189,7 +173,7 @@ func (s searchInstance[T]) Where(sf SearchFilter) searchInstance[T] {
 
 func (s searchInstance[T]) Size(size int) searchInstance[T] {
 	if size < 0 {
-		size = 0
+		size = 10
 	}
 	s.size = size
 	return s

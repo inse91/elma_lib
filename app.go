@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/valyala/fasthttp"
 	"net/http"
 	"time"
 )
@@ -29,12 +28,11 @@ const (
 )
 
 type App[T interface{}] struct {
-	url     string
-	stand   Stand
-	client  *http.Client
-	fClient *fasthttp.Client
-	header  http.Header
-	method  struct {
+	url    string
+	stand  Stand
+	client *http.Client
+	header http.Header
+	method struct {
 		create    string
 		list      string
 		getStatus string
@@ -49,29 +47,6 @@ func NewApp[T interface{}](settings AppSettings) App[T] {
 		url:   url,
 		client: &http.Client{
 			Timeout: time.Second * 5,
-		},
-		fClient: &fasthttp.Client{
-			Name:                          "",
-			NoDefaultUserAgentHeader:      false,
-			Dial:                          nil,
-			DialDualStack:                 false,
-			TLSConfig:                     nil,
-			MaxConnsPerHost:               0,
-			MaxIdleConnDuration:           0,
-			MaxConnDuration:               0,
-			MaxIdemponentCallAttempts:     0,
-			ReadBufferSize:                0,
-			WriteBufferSize:               0,
-			ReadTimeout:                   0,
-			WriteTimeout:                  0,
-			MaxResponseBodySize:           0,
-			DisableHeaderNamesNormalizing: false,
-			DisablePathNormalizing:        false,
-			MaxConnWaitTimeout:            0,
-			RetryIf:                       nil,
-			ConnPoolStrategy:              0,
-			StreamResponseBody:            false,
-			ConfigureClient:               nil,
 		},
 		method: struct {
 			create    string
@@ -92,14 +67,14 @@ func NewApp[T interface{}](settings AppSettings) App[T] {
 }
 
 // Update updates app item in elma by given __id
-func (app App[T]) Update(id string, item *T) (*T, error) {
-
-	if item == nil {
-		return nil, ErrNilItem
-	}
+func (app App[T]) Update(id string, item T) (T, error) {
+	var nilT T
+	//if item == nilT {
+	//	return nilT, ErrNilItem
+	//}
 
 	if len(id) != uuid4Len {
-		return nil, fmt.Errorf("%s: %w", id, ErrInvalidID)
+		return nilT, fmt.Errorf("%s: %w", id, ErrInvalidID)
 	}
 
 	url := app.url + "/" + id + methodUpdate
@@ -107,66 +82,67 @@ func (app App[T]) Update(id string, item *T) (*T, error) {
 		Context: item,
 	})
 	if err != nil {
-		return nil, err
+		return nilT, err
 	}
 
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bts))
 	if err != nil {
-		return nil, fmt.Errorf("failed creating request: %w", err)
+		return nilT, fmt.Errorf("failed creating request: %w", err)
 	}
-	request.Header = app.header
+	request.Header = app.stand.header()
 
 	response, err := app.client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending request: %w", err)
+		return nilT, fmt.Errorf("failed sending request: %w", err)
 	}
-
 	defer func() {
 		_ = response.Body.Close()
 	}()
 
 	ir := new(itemResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
-		return nil, fmt.Errorf("failed decoding response body: %w", err)
+		return nilT, fmt.Errorf("failed decoding response body: %w", err)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
-		return nil, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
+		return nilT, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
 	}
 
-	if ir.Item == nil {
-		return nil, ErrResponseNilItem
-	}
+	//if ir.Item == nil {
+	//	return nilT, ErrResponseNilItem
+	//}
 	return ir.Item, nil
 }
 
 // Create creates app item in elma
-func (app App[T]) Create(item *T) (*T, error) {
+func (app App[T]) Create(item T) (T, error) {
 
-	if item == nil {
-		return nil, ErrNilItem
-	}
+	var nilT T
+
+	//if item == nil {
+	//	return nilT, ErrNilItem
+	//}
 
 	bts, err := json.Marshal(createItemRequest[T]{
 		Context: item,
 	})
 	if err != nil {
-		return nil, err
+		return nilT, err
 	}
 
 	request, err := http.NewRequest(http.MethodPost, app.method.create, bytes.NewReader(bts))
 	if err != nil {
-		return nil, fmt.Errorf("failed creating request: %w", err)
+		return nilT, fmt.Errorf("failed creating request: %w", err)
 	}
 
 	request.Header = app.stand.header()
 	response, err := app.client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending request: %w", err)
+		return nilT, fmt.Errorf("failed sending request: %w", err)
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -174,42 +150,42 @@ func (app App[T]) Create(item *T) (*T, error) {
 
 	ir := new(itemResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
-		return nil, fmt.Errorf("failed decoding response body: %w", err)
+		return nilT, fmt.Errorf("failed decoding response body: %w", err)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
-		return nil, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
+		return nilT, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
 	}
 
-	if ir.Item == nil {
-		return nil, ErrResponseNilItem
-	}
+	//if ir.Item == nil {
+	//	return nilT, ErrResponseNilItem
+	//}
 
 	return ir.Item, nil
 
 }
 
 // GetByID performs search app item by given __id
-func (app App[T]) GetByID(id string) (*T, error) {
-
+func (app App[T]) GetByID(id string) (T, error) {
+	var nilT T
 	if len(id) != uuid4Len {
-		return nil, fmt.Errorf("%s: %w", id, ErrInvalidID)
+		return nilT, fmt.Errorf("%s: %w", id, ErrInvalidID)
 	}
 
 	url := app.url + "/" + id + methodGet
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed creating request: %w", err)
+		return nilT, fmt.Errorf("failed creating request: %w", err)
 	}
 	request.Header = app.header
 
 	response, err := app.client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending request: %w", err)
+		return nilT, fmt.Errorf("failed sending request: %w", err)
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -217,30 +193,31 @@ func (app App[T]) GetByID(id string) (*T, error) {
 
 	ir := new(itemResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
-		return nil, fmt.Errorf("failed decoding response body: %w", err)
+		return nilT, fmt.Errorf("failed decoding response body: %w", err)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
-		return nil, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
+		return nilT, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
 	}
 
-	if ir.Item == nil {
-		return nil, ErrResponseNilItem
-	}
+	//if ir.Item == nil {
+	//	return nilT, ErrResponseNilItem
+	//}
 
 	return ir.Item, nil
 
 }
 
 // SetStatus sets app item status with __id by given status code
-func (app App[T]) SetStatus(id, code string) (*T, error) {
+func (app App[T]) SetStatus(id, code string) (T, error) {
 
+	var nilT T
 	if len(id) != uuid4Len {
-		return nil, fmt.Errorf("%s: %w", id, ErrInvalidID)
+		return nilT, fmt.Errorf("%s: %w", id, ErrInvalidID)
 	}
 
 	url := app.url + "/" + id + methodSetStatus
@@ -250,18 +227,18 @@ func (app App[T]) SetStatus(id, code string) (*T, error) {
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nilT, err
 	}
 
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bts))
 	if err != nil {
-		return nil, fmt.Errorf("failed creating request: %w", err)
+		return nilT, fmt.Errorf("failed creating request: %w", err)
 	}
 	request.Header = app.header
 
 	response, err := app.client.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending request: %w", err)
+		return nilT, fmt.Errorf("failed sending request: %w", err)
 	}
 
 	defer func() {
@@ -270,20 +247,20 @@ func (app App[T]) SetStatus(id, code string) (*T, error) {
 
 	ir := new(itemResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
-		return nil, fmt.Errorf("failed decoding response body: %w", err)
+		return nilT, fmt.Errorf("failed decoding response body: %w", err)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
-		return nil, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
+		return nilT, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
 	}
 
-	if ir.Item == nil {
-		return nil, ErrResponseNilItem
-	}
+	//if ir.Item == nil {
+	//	return nilT, ErrResponseNilItem
+	//}
 
 	return ir.Item, nil
 }
@@ -319,4 +296,5 @@ func (app App[T]) GetStatusInfo() (StatusInfo, error) {
 	}
 
 	return gsr.StatusInfo, nil
+
 }
