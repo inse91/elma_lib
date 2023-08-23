@@ -2,7 +2,7 @@ package e365_gateway
 
 import "time"
 
-type Common struct {
+type AppCommon struct {
 	ID                  string    `json:"__id,omitempty"`
 	Name                string    `json:"__name,omitempty"`
 	CreatedAt           time.Time `json:"__createdAt,omitempty"`

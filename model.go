@@ -41,9 +41,14 @@ type runProcRequest[T interface{}] struct {
 	Context T `json:"context"`
 }
 
-type runProcessResponse[T interface{}] struct {
+type runProcResponse[T interface{}] struct {
 	respCommon
-	Context ProcessContext `json:"context"`
+	Context T `json:"context"`
+}
+
+type getProcInstanceResponse[T interface{}] struct {
+	respCommon
+	Context T `json:"data"`
 }
 
 type getFileLinkResp struct {

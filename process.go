@@ -2,19 +2,22 @@ package e365_gateway
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 )
 
 const (
 	methodRun = "/run"
+	//methodGet = "/run"
 )
 
-type EmptyCtx struct{}
+type EmptyCtx struct {
+	ProcCommon
+}
 
-type Process[T interface{}] struct {
+type Proc[T interface{}] struct {
 	url    string
 	stand  Stand
 	client *http.Client
@@ -23,9 +26,9 @@ type Process[T interface{}] struct {
 	}
 }
 
-// NewProcess creates new adapter for interaction with process in elma, where T is process Context
-func NewProcess[T interface{}](settings AppSettings) Process[T] {
-	return Process[T]{
+// NewProc creates new adapter for interaction with process in elma, where T is process Context
+func NewProc[T interface{}](settings AppSettings) Proc[T] {
+	return Proc[T]{
 		url: settings.toBpmUrl(),
 		client: &http.Client{
 			Timeout: time.Second * 3,
@@ -35,42 +38,82 @@ func NewProcess[T interface{}](settings AppSettings) Process[T] {
 	}
 }
 
-func (proc Process[T]) Run(ctx T) (string, error) {
+func (proc Proc[T]) GetInstanceById(ctx context.Context, id string) (T, error) {
 
-	bts, err := json.Marshal(runProcRequest[T]{
-		Context: ctx,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed encoding request body: %w", err)
+	var nilT T
+
+	if len(id) != uuid4Len {
+		return nilT, wrap(id, ErrInvalidID)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, proc.method.run, bytes.NewReader(bts))
+	url := proc.stand.url() + "/" + pubV1ApiInstance + id + methodGet
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed creating request: %w", err)
+		return nilT, wrap(err.Error(), ErrCreateRequest)
 	}
 
 	request.Header = proc.stand.header()
 	response, err := proc.client.Do(request)
 	if err != nil {
-		return "", fmt.Errorf("failed sending request: %w", err)
+		return nilT, wrap(err.Error(), ErrSendRequest)
 	}
 	defer func() {
 		_ = response.Body.Close()
 	}()
 
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: %d", ErrResponseNotOK, response.StatusCode)
+		return nilT, wrap(response.Status, ErrResponseStatusNotOK)
 	}
 
-	ir := new(runProcessResponse[T])
+	ir := new(getProcInstanceResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
-		return "", fmt.Errorf("failed decoding response body: %w", err)
+		return nilT, wrap(err.Error(), ErrDecodeResponseBody)
 	}
 
 	if !ir.Success {
-		return "", fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
+		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
 	}
 
-	return ir.Context.Id, nil
+	return ir.Context, nil
+
+}
+
+func (proc Proc[T]) Run(ctx context.Context, procCtx T) (T, error) {
+
+	var nilT T
+	bts, err := json.Marshal(runProcRequest[T]{
+		Context: procCtx,
+	})
+	if err != nil {
+		return nilT, wrap(err.Error(), ErrEncodeRequestBody)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, proc.method.run, bytes.NewReader(bts))
+	if err != nil {
+		return nilT, wrap(err.Error(), ErrCreateRequest)
+	}
+
+	request.Header = proc.stand.header()
+	response, err := proc.client.Do(request)
+	if err != nil {
+		return nilT, wrap(err.Error(), ErrSendRequest)
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		return nilT, wrap(err.Error(), ErrResponseStatusNotOK)
+	}
+
+	ir := new(runProcResponse[T])
+	if err = decodeStd(response.Body, ir); err != nil {
+		return nilT, wrap(err.Error(), ErrDecodeResponseBody)
+	}
+
+	if !ir.Success {
+		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
+	}
+
+	return ir.Context, nil
 
 }

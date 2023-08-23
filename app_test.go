@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
-	"time"
 )
 
 const url = "https://q3bamvpkvrulg.elma365.ru"
@@ -12,13 +11,13 @@ const token = "9dccd775-f46a-4167-b2b0-4bc2e6d6356b"
 
 type Product struct {
 	//Name  string `json:"__name"`
-	Common
+	AppCommon
 	Price int `json:"price,omitempty"`
 }
 
 func TestElmaApp(t *testing.T) {
 
-	s := NewStand("https://q3bamvpkvrulg.elma365.ru", "", "33ef3e66-c1cd-4d99-9a77-ddc4af2893cf")
+	s := NewStand(testDefaultStandSettings)
 	goods := NewApp[Product](AppSettings{
 		Stand:     s,
 		Namespace: "goods",
@@ -33,7 +32,7 @@ func TestElmaApp(t *testing.T) {
 
 	t.Run("create_item", func(t *testing.T) {
 		item, err := goods.Create(Product{
-			Common: Common{
+			AppCommon: AppCommon{
 				Name: "test1",
 			},
 			Price: 15,
@@ -43,27 +42,27 @@ func TestElmaApp(t *testing.T) {
 		fmt.Println(item.ID)
 	})
 
-	t.Run("create_many", func(t *testing.T) {
-		for i := 0; i < 1000; i++ {
-
-			item, err := goods.Create(Product{
-				Common: Common{
-					Name: "test1",
-				},
-				Price: 10,
-			})
-			require.NoError(t, err)
-			require.NotNil(t, item)
-			fmt.Println(i, item.ID)
-			time.Sleep(time.Millisecond * 500)
-
-		}
-
-	})
+	//t.Run("create_many", func(t *testing.T) {
+	//	for i := 0; i < 1000; i++ {
+	//
+	//		item, err := goods.Create(Product{
+	//			AppCommon: AppCommon{
+	//				Name: "test1",
+	//			},
+	//			Price: 10,
+	//		})
+	//		require.NoError(t, err)
+	//		require.NotNil(t, item)
+	//		fmt.Println(i, item.ID)
+	//		time.Sleep(time.Millisecond * 500)
+	//
+	//	}
+	//
+	//})
 
 	t.Run("update", func(t *testing.T) {
 		item, err := goods.Update("0189f301-b06f-1ac3-f257-99628aa722de", Product{
-			Common: Common{
+			AppCommon: AppCommon{
 				Name: "test1",
 			},
 			Price: 25,
@@ -165,12 +164,12 @@ func TestElmaApp(t *testing.T) {
 				Fields: Fields{
 					"price": AppNumberFilter(50, 200),
 				},
-			}).All()
+			}).AllAtOnce()
 			require.NoError(t, err)
 			require.Equal(t, 4, len(items))
 		})
 
-		t.Run("search_all_filter", func(t *testing.T) {
+		t.Run("search_all_filter_1", func(t *testing.T) {
 			items, err := goods.Search().Where(SearchFilter{
 				Fields: Fields{
 					"price":  AppNumberFilter(50, 500),

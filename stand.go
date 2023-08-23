@@ -12,6 +12,18 @@ type stand struct {
 	h http.Header
 }
 
+var testDefaultStandSettings = StandSettings{
+	Host:  "https://q3bamvpkvrulg.elma365.ru",
+	Port:  "",
+	Token: "33ef3e66-c1cd-4d99-9a77-ddc4af2893cf",
+}
+
+type StandSettings struct {
+	Host  string
+	Port  string
+	Token string
+}
+
 func (s stand) url() string {
 	if s.port == "" {
 		return s.host
@@ -29,14 +41,14 @@ type Stand interface {
 	header() http.Header
 }
 
-func NewStand(host, port, token string) Stand {
+func NewStand(settings StandSettings) Stand {
 	return stand{
-		host: host,
-		port: port,
+		host: settings.Host,
+		port: settings.Port,
 		h: func() http.Header {
 			h := http.Header{}
 			h.Set("Content-type", "application/json")
-			h.Set("Authorization", "Bearer "+token)
+			h.Set("Authorization", "Bearer "+settings.Token)
 			return h
 		}(),
 	}

@@ -12,7 +12,7 @@ import (
 
 func TestElmaFile(t *testing.T) {
 
-	s := NewStand("https://q3bamvpkvrulg.elma365.ru", "", "33ef3e66-c1cd-4d99-9a77-ddc4af2893cf")
+	s := NewStand(testDefaultStandSettings)
 	files := NewFileAdapter(s)
 
 	testFileId := "68e8ecab-39e5-4566-ae15-b961a4f2cbee"

@@ -3,19 +3,9 @@ package e365_gateway
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
-)
-
-var (
-	ErrInvalidID          = errors.New("invalid app item id")
-	ErrResponseNotOK      = errors.New("response status is not ok")
-	ErrResponseNotSuccess = errors.New("response is not success")
-	ErrNilItem            = errors.New("item is nil")
-	ErrNilSearchFilter    = errors.New("search filter is nil")
-	ErrResponseNilItem    = errors.New("response item in nil")
 )
 
 const (
@@ -105,7 +95,7 @@ func (app App[T]) Update(id string, item T) (T, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
@@ -154,7 +144,7 @@ func (app App[T]) Create(item T) (T, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
@@ -197,7 +187,7 @@ func (app App[T]) GetByID(id string) (T, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
@@ -251,7 +241,7 @@ func (app App[T]) SetStatus(id, code string) (T, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, ir.Error)
+		return nilT, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, ir.Error)
 	}
 
 	if !ir.Success {
@@ -288,7 +278,7 @@ func (app App[T]) GetStatusInfo() (StatusInfo, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return StatusInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, gsr.Error)
+		return StatusInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, gsr.Error)
 	}
 
 	if !gsr.Success {

@@ -2,7 +2,13 @@ package e365_gateway
 
 import "time"
 
-type ProcessContext struct {
+const (
+	StateDone = "done"
+	StateExec = "exec"
+)
+
+type ProcCommon struct {
+	ID                        string      `json:"__id"`
 	CreatedAt                 time.Time   `json:"__createdAt"`
 	CreatedBy                 string      `json:"__createdBy"`
 	CurrentPerformers         interface{} `json:"__currentPerformers"`
@@ -15,7 +21,6 @@ type ProcessContext struct {
 		Items struct {
 		} `json:"items"`
 	} `json:"__flowHistory"`
-	Id          string `json:"__id"`
 	InformLists struct {
 	} `json:"__informLists"`
 	Logged        bool        `json:"__logged"`
@@ -48,5 +53,5 @@ type ProcessContext struct {
 		ParentPath       string `json:"parent_path"`
 		Callback         string `json:"callback"`
 	} `json:"cross_instance"`
-	Goods interface{} `json:"goods"`
+	//Goods interface{} `json:"goods"`
 }

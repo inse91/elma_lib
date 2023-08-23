@@ -34,7 +34,7 @@ func (app App[T]) find(f filter) ([]T, error) {
 	}()
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %d", ErrResponseNotOK, response.StatusCode)
+		return nil, fmt.Errorf("%w: %d", ErrResponseStatusNotOK, response.StatusCode)
 	}
 
 	alr := new(appListResponse[T])

@@ -5,15 +5,14 @@ import (
 )
 
 const pubV1ApiApp = "pub/v1/app"
-const pubV1ApiBpm = "pub/v1/bpm/template"
 
-//type Common struct {
+//type AppCommon struct {
 //	URL   string
 //	Token string
 //}
 
 type AppSettings struct {
-	//Common
+	//AppCommon
 	Stand     Stand
 	Namespace string
 	Code      string

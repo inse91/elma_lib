@@ -67,7 +67,7 @@ func (d Directory) Upload(buf *bytes.Buffer, name string) (File, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return File{}, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, fr.Error)
+		return File{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, fr.Error)
 	}
 
 	if !fr.Success {
@@ -101,7 +101,7 @@ func (d Directory) Info() (DirectoryInfo, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return DirectoryInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, di.Error)
+		return DirectoryInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, di.Error)
 	}
 
 	if !di.Success {

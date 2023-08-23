@@ -93,7 +93,7 @@ func (fa FileAdapter) GetDownloadLink(id string) (string, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, fr.Error)
+		return "", fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, fr.Error)
 	}
 
 	if !fr.Success {
@@ -154,7 +154,7 @@ func (fa FileAdapter) getDirectoriesList() (string, error) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: %d (%s)", ErrResponseNotOK, response.StatusCode, fr.Error)
+		return "", fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, fr.Error)
 	}
 
 	if !fr.Success {
