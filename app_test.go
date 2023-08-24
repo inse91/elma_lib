@@ -2,8 +2,10 @@ package e365_gateway
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 const url = "https://q3bamvpkvrulg.elma365.ru"
@@ -18,7 +20,7 @@ type Product struct {
 func TestElmaApp(t *testing.T) {
 
 	s := NewStand(testDefaultStandSettings)
-	goods := NewApp[Product](AppSettings{
+	goods := NewApp[Product](Settings{
 		Stand:     s,
 		Namespace: "goods",
 		Code:      "goods",
@@ -31,12 +33,14 @@ func TestElmaApp(t *testing.T) {
 	})
 
 	t.Run("create_item", func(t *testing.T) {
+		now := time.Now()
 		item, err := goods.Create(Product{
 			AppCommon: AppCommon{
 				Name: "test1",
 			},
 			Price: 15,
 		})
+		fmt.Println(time.Since(now).String())
 		require.NoError(t, err)
 		require.NotNil(t, item)
 		fmt.Println(item.ID)
@@ -206,4 +210,38 @@ func TestElmaApp(t *testing.T) {
 
 	})
 
+}
+
+func TestApp_CreateMany(t *testing.T) {
+
+	s := NewStand(testDefaultStandSettings)
+	goods := NewApp[Product](Settings{
+		Stand:     s,
+		Namespace: "goods",
+		Code:      "goods",
+	})
+
+	var isAnySuccess bool
+
+	for i := 0; i < 10; i++ {
+		//t.Run("create_item", func(t *testing.T) {
+		now := time.Now()
+		item, err := goods.Create(Product{
+			AppCommon: AppCommon{
+				Name: "test1",
+			},
+			Price: 15,
+		})
+		if err == nil {
+			isAnySuccess = true
+		}
+		fmt.Println(time.Since(now).String())
+		assert.ErrorIs(t, err, ErrSendRequest)
+		assert.Contains(t, err.Error(), "Timeout")
+		//assert.NotNil(t, item)
+		fmt.Println(item.ID)
+		//})
+	}
+
+	require.True(t, isAnySuccess)
 }

@@ -30,13 +30,14 @@ type App[T interface{}] struct {
 }
 
 // NewApp creates new adapter for interaction with app in elma, where T is app Context
-func NewApp[T interface{}](settings AppSettings) App[T] {
+func NewApp[T interface{}](settings Settings) App[T] {
 	url := settings.toAppUrl()
 	return App[T]{
 		stand: settings.Stand,
 		url:   url,
 		client: &http.Client{
 			Timeout: time.Second * 5,
+			//Timeout: time.Millisecond * 100,
 		},
 		method: struct {
 			create    string
@@ -102,9 +103,6 @@ func (app App[T]) Update(id string, item T) (T, error) {
 		return nilT, fmt.Errorf("%w: %s", ErrResponseNotSuccess, ir.Error)
 	}
 
-	//if ir.Item == nil {
-	//	return nilT, ErrResponseNilItem
-	//}
 	return ir.Item, nil
 }
 
@@ -132,7 +130,8 @@ func (app App[T]) Create(item T) (T, error) {
 	request.Header = app.stand.header()
 	response, err := app.client.Do(request)
 	if err != nil {
-		return nilT, fmt.Errorf("failed sending request: %w", err)
+		//return nilT, fmt.Errorf("failed sending request: %w", err)
+		return nilT, wrap(err.Error(), ErrSendRequest)
 	}
 	defer func() {
 		_ = response.Body.Close()

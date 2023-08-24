@@ -6,8 +6,8 @@ import (
 )
 
 func TestUrlGeneration(t *testing.T) {
-	appSettings := AppSettings{
-		Stand: NewStand(StandSettings{
+	appSettings := Settings{
+		Stand: NewStand(StandConfig{
 			Host:  "https://elma.ru",
 			Port:  "8080",
 			Token: "",

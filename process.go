@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -13,7 +15,8 @@ const (
 	//methodGet = "/run"
 )
 
-type EmptyCtx struct {
+// EmptyProcCtx - пустой контекст бизнес-процесса, содержит только служебные поля.
+type EmptyProcCtx struct {
 	ProcCommon
 }
 
@@ -26,8 +29,17 @@ type Proc[T interface{}] struct {
 	}
 }
 
-// NewProc creates new adapter for interaction with process in elma, where T is process Context
-func NewProc[T interface{}](settings AppSettings) Proc[T] {
+// NewProc создает новый адаптер для взаимодействия с бизнес-процессом.
+// Параметр T предстваляет собой контекст процесса. Служебные поля контекста можно взять из ProcCommon
+// и встроить в структуру с пользовательскими полями контекста.
+// При пстуом входном контексте можно использовать EmptyProcCtx.
+// Параметры процесса передаются через Settings:
+// Stand - интерфейс стенда на котором нужно запускать процесс (!= nil);
+// Namespace - код раздела/приложения, в котором находится процесс (если процесс находится на уровне раздела X,
+// то код нужно передавать как  "X"; если процесс находится на уровне приложения Y в разделе X, то код нужно передавать
+// как "X.Y";
+// Code - код самого процесса
+func NewProc[T interface{}](settings Settings) Proc[T] {
 	return Proc[T]{
 		url: settings.toBpmUrl(),
 		client: &http.Client{
@@ -38,6 +50,11 @@ func NewProc[T interface{}](settings AppSettings) Proc[T] {
 	}
 }
 
+func (proc Proc[T]) SetClientTimeout(t time.Duration) {
+	proc.client.Timeout = t
+}
+
+// GetInstanceById получает экзмемпляр бизнес-процесса по __id.
 func (proc Proc[T]) GetInstanceById(ctx context.Context, id string) (T, error) {
 
 	var nilT T
@@ -78,6 +95,7 @@ func (proc Proc[T]) GetInstanceById(ctx context.Context, id string) (T, error) {
 
 }
 
+// Run запускает бизнес-процесс с переданным входным контекстом.
 func (proc Proc[T]) Run(ctx context.Context, procCtx T) (T, error) {
 
 	var nilT T
@@ -101,11 +119,16 @@ func (proc Proc[T]) Run(ctx context.Context, procCtx T) (T, error) {
 		_ = response.Body.Close()
 	}()
 
+	ir := new(runProcResponse[T])
 	if response.StatusCode != http.StatusOK {
-		return nilT, wrap(err.Error(), ErrResponseStatusNotOK)
+		//ir := new(runProcResponse[T])
+		if err = decodeStd(response.Body, ir); err == nil {
+			return nilT, wrap(fmt.Sprintf("%s: %s", response.Status, ir.Error), ErrResponseStatusNotOK)
+		}
+		bts, _ = io.ReadAll(response.Body)
+		return nilT, wrap(string(bts), ErrResponseStatusNotOK)
 	}
 
-	ir := new(runProcResponse[T])
 	if err = decodeStd(response.Body, ir); err != nil {
 		return nilT, wrap(err.Error(), ErrDecodeResponseBody)
 	}
