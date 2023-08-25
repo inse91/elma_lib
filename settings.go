@@ -4,15 +4,7 @@ import (
 	"fmt"
 )
 
-const pubV1ApiApp = "pub/v1/app"
-
-//type AppCommon struct {
-//	URL   string
-//	Token string
-//}
-
 type Settings struct {
-	//AppCommon
 	Stand     Stand
 	Namespace string
 	Code      string

@@ -63,5 +63,5 @@ type fileResponse struct {
 
 type dirInfoResponse struct {
 	respCommon
-	Directory DirectoryInfo `json:"directory"`
+	DirectoryInfo DirectoryInfo `json:"directory"`
 }

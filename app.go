@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	pubV1ApiApp = "pub/v1/app"
+
 	methodGet       = "/get"
 	methodUpdate    = "/update"
 	methodCreate    = "/create"
