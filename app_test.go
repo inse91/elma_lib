@@ -26,66 +26,61 @@ func TestElmaApp(t *testing.T) {
 		Code:      "goods",
 	})
 
-	t.Run("get by id", func(t *testing.T) {
-		item, err := goods.GetByID("26cc4e77-0f02-44ae-a92f-0a34b8a6f4fc")
-		require.NoError(t, err)
-		require.Equal(t, "Мясо", item.Name)
-	})
+	t.Run("single_success", func(t *testing.T) {
 
-	t.Run("create_item", func(t *testing.T) {
-		now := time.Now()
-		item, err := goods.Create(Product{
-			AppCommon: AppCommon{
-				Name: "test1",
-			},
-			Price: 15,
-		})
-		fmt.Println(time.Since(now).String())
-		require.NoError(t, err)
-		require.NotNil(t, item)
-		fmt.Println(item.ID)
-	})
+		validItemId := "018a2b9f-003d-2b48-7e2a-324e6fc16db8"
 
-	//t.Run("create_many", func(t *testing.T) {
-	//	for i := 0; i < 1000; i++ {
-	//
-	//		item, err := goods.Create(Product{
-	//			AppCommon: AppCommon{
-	//				Name: "test1",
-	//			},
-	//			Price: 10,
-	//		})
-	//		require.NoError(t, err)
-	//		require.NotNil(t, item)
-	//		fmt.Println(i, item.ID)
-	//		time.Sleep(time.Millisecond * 500)
-	//
-	//	}
-	//
-	//})
-
-	t.Run("update", func(t *testing.T) {
-		item, err := goods.Update("0189f301-b06f-1ac3-f257-99628aa722de", Product{
-			AppCommon: AppCommon{
-				Name: "test1",
-			},
-			Price: 25,
+		t.Run("get by id", func(t *testing.T) {
+			item, err := goods.GetByID(validItemId)
+			require.NoError(t, err)
+			require.Equal(t, "test2", item.Name)
 		})
 
-		require.NoError(t, err)
-		require.Equal(t, 25, item.Price)
-	})
+		t.Run("create_item", func(t *testing.T) {
+			now := time.Now()
+			p := Product{
+				AppCommon: AppCommon{
+					Name: "test1",
+				},
+				Price: 15,
+			}
+			item, err := goods.Create(p)
+			fmt.Println(time.Since(now).String())
+			require.NoError(t, err)
+			require.Len(t, item.ID, uuid4Len)
+			require.Equal(t, item.Name, p.Name)
+			require.Equal(t, item.Price, p.Price)
+			fmt.Println(item.ID)
+		})
 
-	t.Run("set_status", func(t *testing.T) {
-		item, err := goods.SetStatus("b937afb7-df6e-4c95-9076-5018f36a6ee7", "st1") // пельмени
-		require.NoError(t, err)
-		require.Equal(t, 1, item.Status.Status)
-	})
+		t.Run("update", func(t *testing.T) {
 
-	t.Run("get_status", func(t *testing.T) {
-		si, err := goods.GetStatusInfo() // пельмени
-		require.NoError(t, err)
-		require.Equal(t, 2, len(si.StatusItems))
+			newPrice := 25
+			newName := "test2"
+			item, err := goods.Update(validItemId, Product{
+				AppCommon: AppCommon{
+					Name: newName,
+				},
+				Price: newPrice,
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, newPrice, item.Price)
+			require.Equal(t, newName, item.Name)
+		})
+
+		t.Run("set_status", func(t *testing.T) {
+			item, err := goods.SetStatus(validItemId, "st2")
+			require.NoError(t, err)
+			require.Equal(t, 2, item.Status.Status)
+		})
+
+		t.Run("get_status", func(t *testing.T) {
+			si, err := goods.GetStatusInfo()
+			require.NoError(t, err)
+			require.Equal(t, 2, len(si.StatusItems))
+		})
+
 	})
 
 	t.Run("find", func(t *testing.T) {
