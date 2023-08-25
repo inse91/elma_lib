@@ -93,6 +93,7 @@ func (fa FileAdapter) GetDownloadLink(ctx context.Context, id string) (string, e
 
 }
 
+// NewDirectory - создает адапетр для взаимодействия с уже существующей директорией в elma365.
 func (fa FileAdapter) NewDirectory(id string) Directory {
 	return Directory{
 		id:     id,

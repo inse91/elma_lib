@@ -26,6 +26,7 @@ func (d Directory) SetClientTimeout(t time.Duration) {
 	d.client.Timeout = t
 }
 
+// Upload создает файл в директории и загружет содержимое буфера в файл.
 func (d Directory) Upload(ctx context.Context, buf *bytes.Buffer, name string) (File, error) {
 
 	if buf == nil {
@@ -77,25 +78,9 @@ func (d Directory) Upload(ctx context.Context, buf *bytes.Buffer, name string) (
 
 	return fr.File, nil
 
-	//response, err := d.client.Do(request)
-	//if err != nil {
-	//	return File{}, wrap(err.Error(), ErrSendRequest)
-	//}
-	//defer func() {
-	//	_ = response.Body.Close()
-	//}()
-	//
-	//if response.StatusCode != http.StatusOK {
-	//	//return File{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, fr.Error)
-	//}
-	//
-	//fr := new(fileResponse)
-	//if err = decodeStd(response.Body, fr); err != nil {
-	//	return File{}, wrap(err.Error(), ErrDecodeResponseBody)
-	//}
-
 }
 
+// Info - получаетс информацию о директории.
 func (d Directory) Info(ctx context.Context) (DirectoryInfo, error) {
 
 	if len(d.id) != uuid4Len {
@@ -118,26 +103,5 @@ func (d Directory) Info(ctx context.Context) (DirectoryInfo, error) {
 	}
 
 	return di.DirectoryInfo, nil
-
-	//response, err := d.client.Do(request)
-	//if err != nil {
-	//	return DirectoryInfo{}, fmt.Errorf("failed sending request: %w", err)
-	//}
-	//defer func() {
-	//	_ = response.Body.Close()
-	//}()
-	//
-	//di := new(dirInfoResponse)
-	//if err = decodeStd(response.Body, di); err != nil {
-	//	return DirectoryInfo{}, fmt.Errorf("failed decoding response body: %w", err)
-	//}
-	//
-	//if response.StatusCode != http.StatusOK {
-	//	return DirectoryInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, di.Error)
-	//}
-	//
-	//if !di.Success {
-	//	return DirectoryInfo{}, fmt.Errorf("%w: %s", ErrResponseNotSuccess, di.Error)
-	//}
 
 }
