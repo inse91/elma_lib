@@ -58,7 +58,6 @@ func (proc Proc[T]) SetClientTimeout(t time.Duration) {
 func (proc Proc[T]) GetInstanceById(ctx context.Context, id string) (T, error) {
 
 	var nilT T
-
 	if len(id) != uuid4Len {
 		return nilT, wrap(id, ErrInvalidID)
 	}
