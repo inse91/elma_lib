@@ -2,10 +2,12 @@ package e365_gateway
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"mime/multipart"
 	"net/http"
+	"time"
 )
 
 const (
@@ -20,10 +22,22 @@ type Directory struct {
 	id     string
 }
 
-func (d Directory) Upload(buf *bytes.Buffer, name string) (File, error) {
+func (d Directory) SetClientTimeout(t time.Duration) {
+	d.client.Timeout = t
+}
+
+func (d Directory) Upload(ctx context.Context, buf *bytes.Buffer, name string) (File, error) {
 
 	if buf == nil {
 		return File{}, ErrNilItem
+	}
+
+	if buf.Len() == 0 {
+		return File{}, ErrEmptyBuffer
+	}
+
+	if len(d.id) != uuid4Len {
+		return File{}, wrap(d.id, ErrInvalidID)
 	}
 
 	hash := uuid.New().String()
@@ -32,19 +46,19 @@ func (d Directory) Upload(buf *bytes.Buffer, name string) (File, error) {
 	w := multipart.NewWriter(body)
 	formFile, err := w.CreateFormFile("file", name)
 	if err != nil {
-		return File{}, fmt.Errorf("failed creating form data: %w", err)
+		return File{}, wrap(err.Error(), ErrCreateFormData)
 	}
 	if _, err = formFile.Write(buf.Bytes()); err != nil {
-		return File{}, fmt.Errorf("failed writing to form data from file: %w", err)
+		return File{}, wrap(err.Error(), ErrWriteBytesBuffer)
 	}
 	if err = w.Close(); err != nil {
-		return File{}, fmt.Errorf("failed closing writer: %w", err)
+		return File{}, wrap(err.Error(), ErrCloseMultipartWriter)
 	}
 
 	url := d.stand.url() + pubV1ApiDiscDirInfo + d.id + methodUploadFile
-	request, err := http.NewRequest(http.MethodPost, url, body)
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
-		return File{}, fmt.Errorf("failed creating request: %w", err)
+		return File{}, wrap(err.Error(), ErrCreateRequest)
 	}
 	request.Header = d.stand.header()
 	request.Header.Set("Content-Type", w.FormDataContentType())
@@ -53,61 +67,77 @@ func (d Directory) Upload(buf *bytes.Buffer, name string) (File, error) {
 	q.Set("hash", hash)
 	request.URL.RawQuery = q.Encode()
 
-	response, err := d.client.Do(request)
+	fr, err := doRequest[fileResponse](d.client, request)
 	if err != nil {
-		return File{}, fmt.Errorf("failed sending request: %w", err)
-	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
-
-	fr := new(fileResponse)
-	if err = decodeStd(response.Body, fr); err != nil {
 		return File{}, err
 	}
-
-	if response.StatusCode != http.StatusOK {
-		return File{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, fr.Error)
-	}
-
 	if !fr.Success {
-		return File{}, fmt.Errorf("%w: %s", ErrResponseNotSuccess, fr.Error)
+		return File{}, wrap(fr.Error, ErrResponseNotSuccess)
 	}
 
 	return fr.File, nil
 
+	//response, err := d.client.Do(request)
+	//if err != nil {
+	//	return File{}, wrap(err.Error(), ErrSendRequest)
+	//}
+	//defer func() {
+	//	_ = response.Body.Close()
+	//}()
+	//
+	//if response.StatusCode != http.StatusOK {
+	//	//return File{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, fr.Error)
+	//}
+	//
+	//fr := new(fileResponse)
+	//if err = decodeStd(response.Body, fr); err != nil {
+	//	return File{}, wrap(err.Error(), ErrDecodeResponseBody)
+	//}
+
 }
 
-func (d Directory) Info() (DirectoryInfo, error) {
+func (d Directory) Info(ctx context.Context) (DirectoryInfo, error) {
+
+	if len(d.id) != uuid4Len {
+		return DirectoryInfo{}, wrap(d.id, ErrInvalidID)
+	}
 
 	url := d.stand.url() + pubV1ApiDiscDirInfo + d.id
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return DirectoryInfo{}, fmt.Errorf("failed creating new request: %s", err)
+		return DirectoryInfo{}, wrap(err.Error(), ErrCreateRequest)
 	}
 	request.Header = d.stand.header()
 
-	response, err := d.client.Do(request)
+	di, err := doRequest[dirInfoResponse](d.client, request)
 	if err != nil {
-		return DirectoryInfo{}, fmt.Errorf("failed sending request: %w", err)
+		return DirectoryInfo{}, err
 	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
-
-	di := new(dirInfoResponse)
-	if err = decodeStd(response.Body, di); err != nil {
-		return DirectoryInfo{}, fmt.Errorf("failed decoding response body: %w", err)
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return DirectoryInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, di.Error)
-	}
-
 	if !di.Success {
-		return DirectoryInfo{}, fmt.Errorf("%w: %s", ErrResponseNotSuccess, di.Error)
+		return DirectoryInfo{}, wrap(di.Error, ErrResponseNotSuccess)
 	}
 
-	return di.Directory, nil
+	return di.DirectoryInfo, nil
+
+	//response, err := d.client.Do(request)
+	//if err != nil {
+	//	return DirectoryInfo{}, fmt.Errorf("failed sending request: %w", err)
+	//}
+	//defer func() {
+	//	_ = response.Body.Close()
+	//}()
+	//
+	//di := new(dirInfoResponse)
+	//if err = decodeStd(response.Body, di); err != nil {
+	//	return DirectoryInfo{}, fmt.Errorf("failed decoding response body: %w", err)
+	//}
+	//
+	//if response.StatusCode != http.StatusOK {
+	//	return DirectoryInfo{}, fmt.Errorf("%w: %d (%s)", ErrResponseStatusNotOK, response.StatusCode, di.Error)
+	//}
+	//
+	//if !di.Success {
+	//	return DirectoryInfo{}, fmt.Errorf("%w: %s", ErrResponseNotSuccess, di.Error)
+	//}
 
 }

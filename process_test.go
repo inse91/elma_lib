@@ -63,7 +63,7 @@ func TestElmaProc(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.Len(t, proc.ID, uuid4Len)
-			//fmt.Println(proc.ID)
+			// fmt.Println(proc.ID)
 			// wait for bp to get done
 			time.Sleep(time.Second * 2)
 

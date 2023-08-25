@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"time"
 )
@@ -70,21 +68,10 @@ func (proc Proc[T]) GetInstanceById(ctx context.Context, id string) (T, error) {
 	}
 
 	request.Header = proc.stand.header()
-	response, err := proc.client.Do(request)
+
+	ir, err := doRequest[getProcInstanceResponse[T]](proc.client, request)
 	if err != nil {
-		return nilT, wrap(err.Error(), ErrSendRequest)
-	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
-
-	if response.StatusCode != http.StatusOK {
-		return nilT, wrap(response.Status, ErrResponseStatusNotOK)
-	}
-
-	ir := new(getProcInstanceResponse[T])
-	if err = decodeStd(response.Body, ir); err != nil {
-		return nilT, wrap(err.Error(), ErrDecodeResponseBody)
+		return nilT, err
 	}
 
 	if !ir.Success {
@@ -92,6 +79,29 @@ func (proc Proc[T]) GetInstanceById(ctx context.Context, id string) (T, error) {
 	}
 
 	return ir.Context, nil
+
+	//response, err := proc.client.Do(request)
+	//if err != nil {
+	//	return nilT, wrap(err.Error(), ErrSendRequest)
+	//}
+	//defer func() {
+	//	_ = response.Body.Close()
+	//}()
+	//
+	//if response.StatusCode != http.StatusOK {
+	//	return nilT, wrap(response.Status, ErrResponseStatusNotOK)
+	//}
+	//
+	//ir := new(getProcInstanceResponse[T])
+	//if err = decodeStd(response.Body, ir); err != nil {
+	//	return nilT, wrap(err.Error(), ErrDecodeResponseBody)
+	//}
+	//
+	//if !ir.Success {
+	//	return nilT, wrap(ir.Error, ErrResponseNotSuccess)
+	//}
+	//
+	//return ir.Context, nil
 
 }
 
@@ -111,27 +121,32 @@ func (proc Proc[T]) Run(ctx context.Context, procCtx T) (T, error) {
 	}
 
 	request.Header = proc.stand.header()
-	response, err := proc.client.Do(request)
+
+	ir, err := doRequest[runProcResponse[T]](proc.client, request)
 	if err != nil {
-		return nilT, wrap(err.Error(), ErrSendRequest)
-	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
-
-	ir := new(runProcResponse[T])
-	if response.StatusCode != http.StatusOK {
-		//ir := new(runProcResponse[T])
-		if err = decodeStd(response.Body, ir); err == nil {
-			return nilT, wrap(fmt.Sprintf("%s: %s", response.Status, ir.Error), ErrResponseStatusNotOK)
-		}
-		bts, _ = io.ReadAll(response.Body)
-		return nilT, wrap(string(bts), ErrResponseStatusNotOK)
+		return nilT, err
 	}
 
-	if err = decodeStd(response.Body, ir); err != nil {
-		return nilT, wrap(err.Error(), ErrDecodeResponseBody)
-	}
+	//response, err := proc.client.Do(request)
+	//if err != nil {
+	//	return nilT, wrap(err.Error(), ErrSendRequest)
+	//}
+	//defer func() {
+	//	_ = response.Body.Close()
+	//}()
+	//ir := new(runProcResponse[T])
+	//if response.StatusCode != http.StatusOK {
+	//	//ir := new(runProcResponse[T])
+	//	if err = decodeStd(response.Body, ir); err == nil {
+	//		return nilT, wrap(fmt.Sprintf("%s: %s", response.Status, ir.Error), ErrResponseStatusNotOK)
+	//	}
+	//	bts, _ = io.ReadAll(response.Body)
+	//	return nilT, wrap(string(bts), ErrResponseStatusNotOK)
+	//}
+	//
+	//if err = decodeStd(response.Body, ir); err != nil {
+	//	return nilT, wrap(err.Error(), ErrDecodeResponseBody)
+	//}
 
 	if !ir.Success {
 		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
