@@ -1,6 +1,7 @@
 package e365_gateway
 
 import (
+	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,6 @@ const url = "https://q3bamvpkvrulg.elma365.ru"
 const token = "9dccd775-f46a-4167-b2b0-4bc2e6d6356b"
 
 type Product struct {
-	//Name  string `json:"__name"`
 	AppCommon
 	Price int `json:"price,omitempty"`
 }
@@ -25,13 +25,14 @@ func TestElmaApp(t *testing.T) {
 		Namespace: "goods",
 		Code:      "goods",
 	})
+	validItemId := "018a2b9f-003d-2b48-7e2a-324e6fc16db8"
+
+	ctxBg := context.Background()
 
 	t.Run("single_success", func(t *testing.T) {
 
-		validItemId := "018a2b9f-003d-2b48-7e2a-324e6fc16db8"
-
-		t.Run("get by id", func(t *testing.T) {
-			item, err := goods.GetByID(validItemId)
+		t.Run("get_by_id", func(t *testing.T) {
+			item, err := goods.GetByID(ctxBg, validItemId)
 			require.NoError(t, err)
 			require.Equal(t, "test2", item.Name)
 		})
@@ -44,7 +45,7 @@ func TestElmaApp(t *testing.T) {
 				},
 				Price: 15,
 			}
-			item, err := goods.Create(p)
+			item, err := goods.Create(ctxBg, p)
 			fmt.Println(time.Since(now).String())
 			require.NoError(t, err)
 			require.Len(t, item.ID, uuid4Len)
@@ -57,7 +58,7 @@ func TestElmaApp(t *testing.T) {
 
 			newPrice := 25
 			newName := "test2"
-			item, err := goods.Update(validItemId, Product{
+			item, err := goods.Update(ctxBg, validItemId, Product{
 				AppCommon: AppCommon{
 					Name: newName,
 				},
@@ -70,13 +71,13 @@ func TestElmaApp(t *testing.T) {
 		})
 
 		t.Run("set_status", func(t *testing.T) {
-			item, err := goods.SetStatus(validItemId, "st2")
+			item, err := goods.SetStatus(ctxBg, validItemId, "st2")
 			require.NoError(t, err)
 			require.Equal(t, 2, item.Status.Status)
 		})
 
-		t.Run("get_status", func(t *testing.T) {
-			si, err := goods.GetStatusInfo()
+		t.Run("get_status_info", func(t *testing.T) {
+			si, err := goods.GetStatusInfo(ctxBg)
 			require.NoError(t, err)
 			require.Equal(t, 2, len(si.StatusItems))
 		})
@@ -205,6 +206,153 @@ func TestElmaApp(t *testing.T) {
 
 	})
 
+	t.Run("table_tests", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("create", func(t *testing.T) {
+			t.Parallel()
+			testCases := []struct {
+				name        string
+				expectedErr error
+				ctx         context.Context
+				item        Product
+			}{
+				{name: "failed_request_creation", expectedErr: ErrCreateRequest},
+				{name: "success", ctx: ctxBg, expectedErr: nil, item: Product{AppCommon: AppCommon{Name: "test_creation"}, Price: 23}},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					item, err := goods.Create(tc.ctx, tc.item)
+					require.ErrorIs(t, err, tc.expectedErr)
+					if tc.expectedErr != nil {
+						return
+					}
+					require.Len(t, item.ID, uuid4Len)
+					require.Equal(t, item.Name, tc.item.Name)
+					require.Equal(t, item.Price, tc.item.Price)
+				})
+			}
+		})
+
+		t.Run("get_by_id", func(t *testing.T) {
+			t.Parallel()
+
+			validItemIdNotExisted := "018a2b9f-003d-2b48-7e2a-324e6fc16db9"
+			testCases := []struct {
+				name        string
+				expectedErr error
+				ctx         context.Context
+				id          string
+			}{
+				{name: "invalid_id", expectedErr: ErrInvalidID},
+				{name: "failed_request_creation", id: validItemId, expectedErr: ErrCreateRequest},
+				{name: "id_not_found", ctx: ctxBg, expectedErr: ErrResponseStatusNotOK, id: validItemIdNotExisted},
+				{name: "success", ctx: ctxBg, expectedErr: nil, id: validItemId},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					item, err := goods.GetByID(tc.ctx, tc.id)
+					require.ErrorIs(t, err, tc.expectedErr)
+					if tc.expectedErr != nil {
+						return
+					}
+					require.Len(t, item.ID, uuid4Len)
+				})
+			}
+		})
+
+		t.Run("update", func(t *testing.T) {
+			t.Parallel()
+
+			validItemIdNotExisted := "018a2b9f-003d-2b48-7e2a-324e6fc16db9"
+			testCases := []struct {
+				name        string
+				expectedErr error
+				ctx         context.Context
+				id          string
+				item        Product
+			}{
+				{name: "invalid_id", expectedErr: ErrInvalidID},
+				{name: "failed_request_creation", id: validItemId, expectedErr: ErrCreateRequest},
+				{name: "id_not_found", ctx: ctxBg, expectedErr: ErrResponseStatusNotOK, id: validItemIdNotExisted},
+				{name: "success", ctx: ctxBg, expectedErr: nil, id: validItemId, item: Product{AppCommon: AppCommon{Name: "test_creation_changed"}, Price: 27}},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					item, err := goods.Update(tc.ctx, tc.id, tc.item)
+					require.ErrorIs(t, err, tc.expectedErr)
+					if tc.expectedErr != nil {
+						return
+					}
+					require.Len(t, item.ID, uuid4Len)
+					require.Equal(t, item.Name, tc.item.Name)
+					require.Equal(t, item.Price, tc.item.Price)
+				})
+			}
+		})
+
+		t.Run("set_status", func(t *testing.T) {
+			t.Parallel()
+
+			validItemIdNotExisted := "018a2b9f-003d-2b48-7e2a-324e6fc16db9"
+			validStatusCode := "st2"
+			invalidStatusCode := "st22"
+			testCases := []struct {
+				name        string
+				expectedErr error
+				ctx         context.Context
+				id          string
+				statusCode  string
+			}{
+				{name: "invalid_id", expectedErr: ErrInvalidID},
+				{name: "failed_request_creation", id: validItemId, expectedErr: ErrCreateRequest},
+				{name: "id_not_found", ctx: ctxBg, expectedErr: ErrResponseStatusNotOK, id: validItemIdNotExisted},
+				{name: "invalid_status_code", ctx: ctxBg, expectedErr: ErrResponseStatusNotOK, statusCode: invalidStatusCode, id: validItemIdNotExisted},
+				{name: "success", ctx: ctxBg, expectedErr: nil, id: validItemId, statusCode: validStatusCode},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					item, err := goods.SetStatus(tc.ctx, tc.id, tc.statusCode)
+					require.ErrorIs(t, err, tc.expectedErr)
+					if tc.expectedErr != nil {
+						return
+					}
+					require.Len(t, item.ID, uuid4Len)
+					require.Equal(t, 2, item.Status.Status)
+				})
+			}
+		})
+
+		t.Run("get_status_info", func(t *testing.T) {
+			t.Parallel()
+
+			testCases := []struct {
+				name        string
+				expectedErr error
+				ctx         context.Context
+			}{
+				{name: "failed_request_creation", expectedErr: ErrCreateRequest},
+				{name: "success", ctx: ctxBg, expectedErr: nil},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					statusInfo, err := goods.GetStatusInfo(tc.ctx)
+					require.ErrorIs(t, err, tc.expectedErr)
+					if tc.expectedErr != nil {
+						return
+					}
+					require.Len(t, statusInfo.StatusItems, 2)
+				})
+			}
+		})
+
+	})
+
 }
 
 func TestApp_CreateMany(t *testing.T) {
@@ -221,7 +369,7 @@ func TestApp_CreateMany(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		//t.Run("create_item", func(t *testing.T) {
 		now := time.Now()
-		item, err := goods.Create(Product{
+		item, err := goods.Create(context.Background(), Product{
 			AppCommon: AppCommon{
 				Name: "test1",
 			},

@@ -2,6 +2,7 @@ package e365_gateway
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -54,7 +55,7 @@ func NewApp[T interface{}](settings Settings) App[T] {
 }
 
 // Create creates app item in elma
-func (app App[T]) Create(item T) (T, error) {
+func (app App[T]) Create(ctx context.Context, item T) (T, error) {
 
 	var nilT T
 	bts, err := json.Marshal(createItemRequest[T]{
@@ -64,7 +65,7 @@ func (app App[T]) Create(item T) (T, error) {
 		return nilT, wrap(err.Error(), ErrEncodeRequestBody)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, app.method.create, bytes.NewReader(bts))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, app.method.create, bytes.NewReader(bts))
 	if err != nil {
 		return nilT, wrap(err.Error(), ErrCreateRequest)
 	}
@@ -84,14 +85,14 @@ func (app App[T]) Create(item T) (T, error) {
 }
 
 // GetByID получает экземпляр приложения с переданным id
-func (app App[T]) GetByID(id string) (T, error) {
+func (app App[T]) GetByID(ctx context.Context, id string) (T, error) {
 	var nilT T
 	if len(id) != uuid4Len {
 		return nilT, wrap(id, ErrInvalidID)
 	}
 
 	url := app.url + "/" + id + methodGet
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		if err != nil {
 			return nilT, wrap(err.Error(), ErrCreateRequest)
@@ -112,7 +113,7 @@ func (app App[T]) GetByID(id string) (T, error) {
 }
 
 // Update обновляет экземпляр приложения с переданным id
-func (app App[T]) Update(id string, item T) (T, error) {
+func (app App[T]) Update(ctx context.Context, id string, item T) (T, error) {
 
 	var nilT T
 	if len(id) != uuid4Len {
@@ -127,7 +128,7 @@ func (app App[T]) Update(id string, item T) (T, error) {
 		return nilT, wrap(err.Error(), ErrEncodeRequestBody)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bts))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bts))
 	if err != nil {
 		return nilT, wrap(err.Error(), ErrCreateRequest)
 	}
@@ -146,7 +147,7 @@ func (app App[T]) Update(id string, item T) (T, error) {
 }
 
 // SetStatus меняет статус экземпляр приложения с переданным id на статус code
-func (app App[T]) SetStatus(id, code string) (T, error) {
+func (app App[T]) SetStatus(ctx context.Context, id, code string) (T, error) {
 
 	var nilT T
 	if len(id) != uuid4Len {
@@ -163,7 +164,7 @@ func (app App[T]) SetStatus(id, code string) (T, error) {
 		return nilT, wrap(err.Error(), ErrEncodeRequestBody)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bts))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bts))
 	if err != nil {
 		return nilT, wrap(err.Error(), ErrCreateRequest)
 	}
@@ -181,10 +182,10 @@ func (app App[T]) SetStatus(id, code string) (T, error) {
 	return ir.Item, nil
 }
 
-// GetStatusInfo
-func (app App[T]) GetStatusInfo() (StatusInfo, error) {
+// GetStatusInfo получает информацию о возможных статусах приложения
+func (app App[T]) GetStatusInfo(ctx context.Context) (StatusInfo, error) {
 
-	request, err := http.NewRequest(http.MethodGet, app.method.getStatus, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, app.method.getStatus, nil)
 	if err != nil {
 		return StatusInfo{}, wrap(err.Error(), ErrCreateRequest)
 	}
