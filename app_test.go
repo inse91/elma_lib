@@ -28,6 +28,7 @@ func TestElmaApp(t *testing.T) {
 	validItemId := "018a2b9f-003d-2b48-7e2a-324e6fc16db8"
 
 	ctxBg := context.Background()
+	//goLimit := 10
 
 	t.Run("single_success", func(t *testing.T) {
 
@@ -84,55 +85,19 @@ func TestElmaApp(t *testing.T) {
 
 	})
 
-	t.Run("find", func(t *testing.T) {
-		t.Run("find_filter_MAP", func(t *testing.T) {
-			items, err := goods.find(filter{
-				Active: true,
-				From:   0,
-				Size:   100,
-				SearchFilter: SearchFilter{
-					Fields: Fields{
-						"__name": "Мясо",
-						"price":  AppNumberFilter(50, 200),
-						//"__deletedAt": AppDateFilter(),
-					},
-					IDs: []string{
-						"26cc4e77-0f02-44ae-a92f-0a34b8a6f4fc",
-						"b937afb7-df6e-4c95-9076-5018f36a6ee7",
-					},
-					SortExpressions: []SortExpression{
-						{Ascending: true, Field: "price"},
-					},
-					AtStatus: []string{
-						"st1",
-					},
-					StatusGroupId: "",
-				},
-			})
-
-			//for _, i := range items {
-			//	fmt.Println(*i)
-			//}
-			require.NoError(t, err)
-			require.Equal(t, 5, len(items))
-			//require.Equal(t, "Мясо", items[0].Name)
-			//require.Equal(t, 50, items[0].Price)
-		})
-	})
-
 	t.Run("search", func(t *testing.T) {
 
 		t.Run("search_first", func(t *testing.T) {
-			item, err := goods.Search().First()
+			item, err := goods.Search().First(ctxBg)
 			require.NoError(t, err)
-			require.Equal(t, "Мясо", item.Name)
+			require.Equal(t, "test1", item.Name)
 		})
 
 		t.Run("search_first_filter", func(t *testing.T) {
 			item, err := goods.Search().Where(SearchFilter{
 				Fields: Fields{
 					"__name": "Мясо",
-					"price":  AppNumberFilter(50, 500),
+					"price":  AppNumberFilter.From(50).To(500),
 					//"__deletedAt": AppDateFilter(),
 				},
 
@@ -147,14 +112,14 @@ func TestElmaApp(t *testing.T) {
 					"st1",
 				},
 				StatusGroupId: "",
-			}).First()
+			}).First(ctxBg)
 
 			require.NoError(t, err)
 			require.Equal(t, "Мясо", item.Name)
 		})
 
 		t.Run("search_all", func(t *testing.T) {
-			items, err := goods.Search().Size(95).All()
+			items, err := goods.Search().Size(95).All(ctxBg)
 			require.NoError(t, err)
 			require.Equal(t, 95, len(items))
 		})
@@ -162,46 +127,72 @@ func TestElmaApp(t *testing.T) {
 		t.Run("search_all_filter", func(t *testing.T) {
 			items, err := goods.Search().Where(SearchFilter{
 				Fields: Fields{
-					"price": AppNumberFilter(50, 200),
-				},
-			}).AllAtOnce()
-			require.NoError(t, err)
-			require.Equal(t, 4, len(items))
-		})
-
-		t.Run("search_all_filter_1", func(t *testing.T) {
-			items, err := goods.Search().Where(SearchFilter{
-				Fields: Fields{
-					"price":  AppNumberFilter(50, 500),
+					"price":  AppNumberFilter.From(50).To(500),
 					"__name": "Мясо",
 				},
-			}).All()
+			}).All(ctxBg)
 			require.NoError(t, err)
 			require.Equal(t, 1, len(items))
 		})
 
 		t.Run("search_all_include_del", func(t *testing.T) {
-			items, err := goods.Search().IncludeDeleted().Size(23).All()
+			items, err := goods.Search().IncludeDeleted().Size(23).All(ctxBg)
 			require.NoError(t, err)
-			require.Equal(t, 23, len(items))
+			require.Len(t, items, 23)
 		})
 
 		t.Run("search_where", func(t *testing.T) {
 			items, err := goods.Search().Where(SearchFilter{
 				Fields: Fields{
-					"price":  AppNumberFilter(50, 500),
+					"price":  AppNumberFilter.From(500),
 					"__name": "Мясо",
 				},
-			}).Size(1).All()
+			}).Size(1).All(ctxBg)
 			require.NoError(t, err)
 			require.Equal(t, 1, len(items))
 		})
 
-		t.Run("search_all_at_once", func(t *testing.T) {
-			items, err := goods.Search().AllAtOnce()
+		t.Run("search_date", func(t *testing.T) {
+			aug28, _ := time.Parse(time.DateOnly, "2023-08-28")
+			items, err := goods.Search().Where(SearchFilter{
+				Fields: Fields{
+					"__createdAt": AppDateFilter.To(aug28),
+				},
+			}).AllAtOnce(ctxBg, 10)
 			require.NoError(t, err)
-			require.Equal(t, 416, len(items))
+			require.Len(t, items, 604)
 
+		})
+
+		t.Run("bool_filter", func(t *testing.T) {
+			items, err := goods.Search().Where(SearchFilter{
+				Fields: Fields{
+					"isPoAktsii": true,
+				},
+			}).All(ctxBg)
+			require.NoError(t, err)
+			require.Len(t, items, 1)
+		})
+
+		t.Run("category_filter", func(t *testing.T) {
+			items, err := goods.Search().Where(SearchFilter{
+				Fields: Fields{
+					"categ": AppCategoryFilter("one"),
+				},
+			}).All(ctxBg)
+			require.NoError(t, err)
+			require.Len(t, items, 2)
+		})
+
+		t.Run("app_field_filter", func(t *testing.T) {
+			items, err := goods.Search().Where(SearchFilter{
+				Fields: Fields{
+
+					"appField": AppApplicationFilter("72f60b1a-168e-412f-8cfd-e119c28e99b7"),
+				},
+			}).Size(100).All(ctxBg)
+			require.NoError(t, err)
+			require.Len(t, items, 2)
 		})
 
 	})

@@ -1,6 +1,7 @@
 package e365_gateway
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/bytedance/sonic"
@@ -23,11 +24,16 @@ func doRequest[T interface{}](cli *http.Client, req *http.Request) (T, error) {
 	t := new(T)
 
 	if r.StatusCode != http.StatusOK {
+		bts, err := io.ReadAll(r.Body)
+		if err != nil {
+			return nilT, wrap(err.Error(), ErrReadResponseBody)
+		}
+		recoveredRespBody := io.NopCloser(bytes.NewBuffer(bts))
 		def := new(respCommon)
-		if err = json.NewDecoder(r.Body).Decode(def); err == nil {
+		if err = json.NewDecoder(recoveredRespBody).Decode(def); err == nil {
 			return nilT, wrap(fmt.Sprintf("%s: %s", r.Status, def.Error), ErrResponseStatusNotOK)
 		}
-		bts, _ := io.ReadAll(r.Body)
+
 		return nilT, wrap(string(bts), ErrResponseStatusNotOK)
 	}
 

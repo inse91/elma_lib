@@ -10,6 +10,7 @@ var (
 	ErrSendRequest         = errors.New("failed sending http request")
 	ErrResponseStatusNotOK = errors.New("response status is not ok")
 	ErrDecodeResponseBody  = errors.New("failed decoding response body")
+	ErrReadResponseBody    = errors.New("failed read response body")
 	ErrEncodeRequestBody   = errors.New("failed encoding request body")
 
 	ErrInvalidID          = errors.New("invalid item id")
@@ -18,6 +19,7 @@ var (
 	ErrEmptyBuffer        = errors.New("item is nil")
 	ErrNilSearchFilter    = errors.New("search filter is nil")
 	ErrResponseNilItem    = errors.New("response item in nil")
+	ErrNoMoreItems        = errors.New("no more items")
 
 	ErrCreateFormData       = errors.New("failed creating form data")
 	ErrWriteBytesBuffer     = errors.New("failed writing from bytes buffer to form data")

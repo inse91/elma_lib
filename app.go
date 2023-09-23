@@ -54,7 +54,7 @@ func NewApp[T interface{}](settings Settings) App[T] {
 	}
 }
 
-// Create creates app item in elma
+// Create создает экземпляр приложения
 func (app App[T]) Create(ctx context.Context, item T) (T, error) {
 
 	var nilT T
@@ -104,10 +104,10 @@ func (app App[T]) GetByID(ctx context.Context, id string) (T, error) {
 	if err != nil {
 		return nilT, err
 	}
-
 	if !ir.Success {
 		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
 	}
+
 	return ir.Item, nil
 
 }
