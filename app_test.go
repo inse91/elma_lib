@@ -355,9 +355,15 @@ func TestElmaApp(t *testing.T) {
 		})
 
 		t.Run("all_at_once", func(t *testing.T) {
-			items, err := goods.Search().AllAtOnce(ctxBg, 1)
+			aug30, err := time.Parse(time.DateOnly, "2023-08-30")
 			require.NoError(t, err)
-			require.Equal(t, 665, len(items))
+			items, err := goods.Search().
+				Where(SearchFilter{Fields: Fields{
+					"__createdAt": Field.Date().To(aug30),
+				}}).
+				AllAtOnce(ctxBg, 10)
+			require.NoError(t, err)
+			require.Equal(t, 613, len(items))
 
 			m := make(map[string]struct{}, len(items))
 			require.Equal(t, 0, len(m))
@@ -365,7 +371,7 @@ func TestElmaApp(t *testing.T) {
 				require.NotEqual(t, "", item.ID)
 				m[item.ID] = struct{}{}
 			}
-			require.Equal(t, 665, len(m))
+			require.Equal(t, 613, len(m))
 		})
 
 	})

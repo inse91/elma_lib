@@ -61,7 +61,7 @@ func (s searchInstance[T]) All(ctx context.Context) ([]T, error) {
 
 // AllAtOnce получает все элементы по переданному фильтру, кол-во элементов задается через Size (в том числе более 100).
 // Асинхронно выполняется несколько запросов, каждый из которых получает не более 100 элементов.
-// Количество одновременно запущенных горутин можно контроллировать через goroutineLimit (по умолчанию 1)
+// Количество одновременно работающих горутин можно контроллировать через goroutineLimit (по умолчанию 1)
 func (s searchInstance[T]) AllAtOnce(ctx context.Context, goroutineLimit int) ([]T, error) {
 
 	count, err := s.Count(ctx)
