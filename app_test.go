@@ -2,6 +2,7 @@ package e365_gateway
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -39,11 +40,13 @@ func TestElmaApp(t *testing.T) {
 			require.Equal(t, item.Price, newItem.Price)
 			require.Equal(t, item.Name, newItem.Name)
 
+			fmt.Println(now)
 			// searching
 			foundItem, err := goods.Search().
 				Where(SearchFilter{
 					Fields: Fields{
-						"price": Field.Number().From(newPrice).To(newPrice),
+						"price":       Field.Number().Equal(newPrice),
+						"__createdAt": Field.Date().From(now),
 					},
 				}).First(ctxBg)
 			require.NoError(t, err)

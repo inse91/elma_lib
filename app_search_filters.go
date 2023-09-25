@@ -124,18 +124,18 @@ type appDateFilter map[string]string
 
 // From позволяет задать верхнюю границу для полей типа "Дата" (опционально)
 func (adf appDateFilter) From(date time.Time) appDateFilter {
-	adf["min"] = date.Format(time.RFC3339)
+	adf["min"] = date.UTC().Format(time.RFC3339)
 	return adf
 }
 
 // To позволяет задать верхнюю границу для полей типа "Дата" (опционально)
 func (adf appDateFilter) To(date time.Time) appDateFilter {
-	adf["max"] = date.Format(time.RFC3339)
+	adf["max"] = date.UTC().Format(time.RFC3339)
 	return adf
 }
 
 // Equal позволяет задать равенство для полей типа "Дата" (опционально)
 func (adf appDateFilter) Equal(date time.Time) appDateFilter {
-	adf["max"] = date.Format(time.DateOnly)
+	adf["max"] = date.UTC().Format(time.DateOnly)
 	return adf
 }
