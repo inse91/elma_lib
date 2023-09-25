@@ -154,10 +154,10 @@ func TestElmaApp(t *testing.T) {
 								Field:     "price",
 							},
 						},
-					}).All(ctxBg)
+					}).First(ctxBg)
 					_ = item
 					require.NoError(t, err)
-					//require.Equal(t, "theMostExpensiveProduct", item.Name)
+					require.Equal(t, "theMostExpensiveProduct", item.Name)
 
 				})
 
@@ -352,6 +352,20 @@ func TestElmaApp(t *testing.T) {
 
 			})
 
+		})
+
+		t.Run("all_at_once", func(t *testing.T) {
+			items, err := goods.Search().AllAtOnce(ctxBg, 1)
+			require.NoError(t, err)
+			require.Equal(t, 665, len(items))
+
+			m := make(map[string]struct{}, len(items))
+			require.Equal(t, 0, len(m))
+			for _, item := range items {
+				require.NotEqual(t, "", item.ID)
+				m[item.ID] = struct{}{}
+			}
+			require.Equal(t, 665, len(m))
 		})
 
 	})

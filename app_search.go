@@ -44,7 +44,8 @@ func (app App[T]) Search() searchInstance[T] {
 	}
 }
 
-// All получает все элементы по переданному фильтру, кол-во элементов задается через Size (не более 100, по умолчанию 10)
+// All получает все элементы по переданному фильтру.
+// Кол-во элементов задается через Size (не более 100, по умолчанию 10)
 func (s searchInstance[T]) All(ctx context.Context) ([]T, error) {
 	items, _, err := s.app.find(ctx, filter{
 		From:         s.from,
@@ -63,6 +64,13 @@ func (s searchInstance[T]) All(ctx context.Context) ([]T, error) {
 // Количество одновременно запущенных горутин можно контроллировать через goroutineLimit (по умолчанию 1)
 func (s searchInstance[T]) AllAtOnce(ctx context.Context, goroutineLimit int) ([]T, error) {
 
+	count, err := s.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	numberOfCycles := 1 + count/100
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -73,12 +81,11 @@ func (s searchInstance[T]) AllAtOnce(ctx context.Context, goroutineLimit int) ([
 	eg, _ := errgroup.WithContext(ctx)
 	eg.SetLimit(goroutineLimit)
 
-	all := make([]T, 0)
+	all := make([]T, 0, count)
 	mu := sync.Mutex{}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < numberOfCycles; i++ {
 		i := i
 		eg.Go(func() error {
-
 			items, _, err := s.app.find(ctx, filter{
 				From:         i * 100,
 				Size:         100,
@@ -90,8 +97,9 @@ func (s searchInstance[T]) AllAtOnce(ctx context.Context, goroutineLimit int) ([
 				return err
 			}
 			if len(items) == 0 {
+				return nil
 				//cancel()
-				return ErrNoMoreItems
+				//return ErrNoMoreItems
 			}
 			mu.Lock()
 			defer mu.Unlock()
@@ -100,7 +108,7 @@ func (s searchInstance[T]) AllAtOnce(ctx context.Context, goroutineLimit int) ([
 		})
 	}
 
-	err := eg.Wait()
+	err = eg.Wait()
 	if err == nil || errors.Is(err, ErrNoMoreItems) {
 		return all, nil
 	}
@@ -134,7 +142,7 @@ func (s searchInstance[T]) Count(ctx context.Context) (int, error) {
 
 	_, count, err := s.app.find(ctx, filter{
 		From:         s.from,
-		Size:         1,
+		Size:         0,
 		Active:       !s.includeDeleted,
 		SearchFilter: s.search,
 	})
@@ -160,7 +168,8 @@ func (s searchInstance[T]) Where(sf SearchFilter) searchInstance[T] {
 	return s
 }
 
-// Size позволяет регулировать максимальное кол-во элментов, которые будут возвращены при поиске (но не более 100, по умолчанию 10).
+// Size позволяет регулировать максимальное кол-во элментов,
+// которые будут возвращены при поиске (но не более 100, по умолчанию 10).
 // Аналог LIMIT в SQL
 func (s searchInstance[T]) Size(size int) searchInstance[T] {
 	if size < 0 {
