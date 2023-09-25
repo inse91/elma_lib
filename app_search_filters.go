@@ -6,11 +6,29 @@ import (
 	"time"
 )
 
+// filter общий набор фильтров
+type filter struct {
+	From   int  `json:"from"`
+	Size   int  `json:"size"`
+	Active bool `json:"active"`
+	SearchFilter
+}
+
+// SearchFilter - набор фильтров для выполнения поиска
+type SearchFilter struct {
+	Fields          Fields           `json:"filter"`
+	IDs             []string         `json:"ids,omitempty"`
+	SortExpressions []SortExpression `json:"sortExpressions,omitempty"`
+	AtStatus        []string         `json:"statusCode,omitempty"`
+	StatusGroupId   string           `json:"statusGroupId,omitempty"`
+}
+
 type SortExpression struct {
 	Ascending bool   `json:"ascending"`
 	Field     string `json:"field"`
 }
 
+// Fields - обертка для фильтров по полям приложений.
 type Fields map[string]interface{}
 
 func (f Fields) MarshalJSON() ([]byte, error) {
@@ -43,59 +61,81 @@ func (f Fields) MarshalJSON() ([]byte, error) {
 	return []byte(sb.String()), nil
 }
 
+type fielder interface {
+	Category(code string) string
+	App(id string) [1]string
+	Date() appDateFilter
+	Number() appNumberFilter
+}
+
+// Field - обертка для поиска по полям типов "Число", "Дата", "Категория" и "Приложение"
+var Field fielder = fieldIface{}
+
+type fieldIface struct{}
+
+// Category фильтр для полей типа "Категория"
+func (f fieldIface) Category(code string) string {
+	return code
+}
+
+// App фильтр для полей типа "Приложение"
+func (f fieldIface) App(id string) [1]string {
+	return [1]string{id}
+}
+
+// Date фильтр для полей типа "Дата"
+func (f fieldIface) Date() appDateFilter {
+	return appDateFilter{
+		"min": "1970-01-01",
+		"max": "3000-01-01",
+	}
+}
+
+// Number фильтр для полей типа "Число"
+func (f fieldIface) Number() appNumberFilter {
+	return appNumberFilter{
+		"min": -(1 << 63),
+		"max": 1 << 63,
+	}
+}
+
 type appNumberFilter map[string]float64
 
-var AppNumberFilter = appNumberFilter{
-	"min": -(1 << 63),
-	"max": 1 << 63,
-}
-
-func (mf appNumberFilter) To(to float64) appNumberFilter {
-	mf["max"] = to
+// To позволяет задать верхнюю границу для полей типа "Число" (опционально)
+func (mf appNumberFilter) To(value float64) appNumberFilter {
+	mf["max"] = value
 	return mf
 }
-func (mf appNumberFilter) From(from float64) appNumberFilter {
-	mf["min"] = from
+
+// From позволяет задать нижнюю границу для полей типа "Число" (опционально)
+func (mf appNumberFilter) From(value float64) appNumberFilter {
+	mf["min"] = value
+	return mf
+}
+
+// Equal позволяет задать равенство для полей типа "Число" (опционально)
+func (mf appNumberFilter) Equal(value float64) appNumberFilter {
+	mf["min"] = value
+	mf["max"] = value
 	return mf
 }
 
 type appDateFilter map[string]string
 
-var AppDateFilter = appDateFilter{
-	"min": "1970-01-01",
-	"max": "3000-01-01",
-}
-
-func (adf appDateFilter) From(from time.Time) appDateFilter {
-	adf["min"] = from.Format(time.DateOnly)
+// From позволяет задать верхнюю границу для полей типа "Дата" (опционально)
+func (adf appDateFilter) From(date time.Time) appDateFilter {
+	adf["min"] = date.Format(time.RFC3339)
 	return adf
 }
 
-func (adf appDateFilter) To(to time.Time) appDateFilter {
-	adf["max"] = to.Format(time.DateOnly)
+// To позволяет задать верхнюю границу для полей типа "Дата" (опционально)
+func (adf appDateFilter) To(date time.Time) appDateFilter {
+	adf["max"] = date.Format(time.RFC3339)
 	return adf
 }
 
-// AppDateFilter позволяет делать фильтр по дате
-//func AppDateFilter(min, max string) map[string]string {
-//	return map[string]string{
-//		"min": min,
-//		"max": max,
-//	}
-//}
-
-// AppNumberFilter фильтрует по числовому полю - OLD
-//func AppNumberFilter(min, max float64) map[string]float64 {
-//	return map[string]float64{
-//		"min": min,
-//		"max": max,
-//	}
-//}
-
-func AppCategoryFilter(code string) string {
-	return code
-}
-
-func AppApplicationFilter(id string) [1]string {
-	return [1]string{id}
+// Equal позволяет задать равенство для полей типа "Дата" (опционально)
+func (adf appDateFilter) Equal(date time.Time) appDateFilter {
+	adf["max"] = date.Format(time.DateOnly)
+	return adf
 }

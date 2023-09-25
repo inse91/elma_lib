@@ -23,69 +23,73 @@ func TestElmaFile(t *testing.T) {
 
 	ctxBg := context.Background()
 
-	t.Run("get_link", func(t *testing.T) {
-		link, err := files.GetDownloadLink(ctxBg, testFileId)
-		require.NoError(t, err)
-		require.NotEqual(t, "", link)
-		require.Contains(t, link, "storage.yandexcloud.net/elma365-production")
-	})
+	t.Run("documentation_tests", func(t *testing.T) {
 
-	t.Run("download_file", func(t *testing.T) {
-		rc, err := files.DownloadFile(ctxBg, testFileId)
-		require.NoError(t, err)
-		bts, err := io.ReadAll(rc)
-		require.NoError(t, err)
-		require.Contains(t, string(bts), "text_content")
-	})
-
-	t.Run("get_dir_info", func(t *testing.T) {
-		dirId := "ff715471-f756-4492-bb14-da941c55caf2"
-		di, err := files.NewDirectory(dirId).Info(ctxBg)
-		require.NoError(t, err)
-		require.Equal(t, "test", di.Name)
-		require.Equal(t, dirId, di.ID)
-	})
-
-	t.Run("upload_file_2_dir", func(t *testing.T) {
-
-		f, err := os.Open("test/file.txt")
-		require.NoError(t, err)
-		bts, err := io.ReadAll(f)
-		require.NoError(t, err)
-		buf := bytes.NewBuffer(bts)
-
-		fileName := fmt.Sprintf("new_file_%s.txt", time.Now().String())
-		file, err := files.NewDirectory(testDirId).Upload(ctxBg, buf, fileName)
-		require.NoError(t, err)
-		require.Equal(t, fileName, file.Name)
-	})
-
-	t.Run("full_success_scenario", func(t *testing.T) {
-
-		fileName := fmt.Sprintf("test_%s.txt", time.Now().String())
-		fileContent := []byte("test_content")
-		buf := bytes.NewBuffer(fileContent)
-
-		elmaDir := files.NewDirectory(testDirId)
-		info, err := elmaDir.Info(ctxBg)
-		require.NoError(t, err)
-		require.Equal(t, testDirId, info.ID)
-
-		f, err := elmaDir.Upload(ctxBg, buf, fileName)
-		require.NoError(t, err)
-		require.Equal(t, testDirId, f.Directory)
-		require.Len(t, f.ID, uuid4Len)
-
-		rc, err := files.DownloadFile(ctxBg, f.ID)
-		require.NoError(t, err)
-		defer func() {
-			err = rc.Close()
+		t.Run("get_link", func(t *testing.T) {
+			link, err := files.GetDownloadLink(ctxBg, testFileId)
 			require.NoError(t, err)
-		}()
+			require.NotEqual(t, "", link)
+			require.Contains(t, link, "storage.yandexcloud.net/elma365-production")
+		})
 
-		content, err := io.ReadAll(rc)
-		require.NoError(t, err)
-		require.Equal(t, fileContent, content)
+		t.Run("download_file", func(t *testing.T) {
+			rc, err := files.DownloadFile(ctxBg, testFileId)
+			require.NoError(t, err)
+			bts, err := io.ReadAll(rc)
+			require.NoError(t, err)
+			require.Contains(t, string(bts), "text_content")
+		})
+
+		t.Run("get_dir_info", func(t *testing.T) {
+			dirId := "ff715471-f756-4492-bb14-da941c55caf2"
+			di, err := files.NewDirectory(dirId).Info(ctxBg)
+			require.NoError(t, err)
+			require.Equal(t, "test", di.Name)
+			require.Equal(t, dirId, di.ID)
+		})
+
+		t.Run("upload_file_to_dir", func(t *testing.T) {
+
+			f, err := os.Open("test/file.txt")
+			require.NoError(t, err)
+			bts, err := io.ReadAll(f)
+			require.NoError(t, err)
+			buf := bytes.NewBuffer(bts)
+
+			fileName := fmt.Sprintf("new_file_%s.txt", time.Now().String())
+			file, err := files.NewDirectory(testDirId).Upload(ctxBg, buf, fileName)
+			require.NoError(t, err)
+			require.Equal(t, fileName, file.Name)
+		})
+
+		t.Run("full_success_scenario", func(t *testing.T) {
+
+			fileName := fmt.Sprintf("test_%s.txt", time.Now().String())
+			fileContent := []byte("test_content")
+			buf := bytes.NewBuffer(fileContent)
+
+			elmaDir := files.NewDirectory(testDirId)
+			info, err := elmaDir.Info(ctxBg)
+			require.NoError(t, err)
+			require.Equal(t, testDirId, info.ID)
+
+			f, err := elmaDir.Upload(ctxBg, buf, fileName)
+			require.NoError(t, err)
+			require.Equal(t, testDirId, f.Directory)
+			require.Len(t, f.ID, uuid4Len)
+
+			rc, err := files.DownloadFile(ctxBg, f.ID)
+			require.NoError(t, err)
+			defer func() {
+				err = rc.Close()
+				require.NoError(t, err)
+			}()
+
+			content, err := io.ReadAll(rc)
+			require.NoError(t, err)
+			require.Equal(t, fileContent, content)
+
+		})
 
 	})
 
