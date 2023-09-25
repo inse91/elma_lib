@@ -46,7 +46,7 @@ func TestElmaApp(t *testing.T) {
 				Where(SearchFilter{
 					Fields: Fields{
 						"price":       Field.Number().Equal(newPrice),
-						"__createdAt": Field.Date().From(now),
+						"__createdAt": Field.DateTime().From(now),
 					},
 				}).First(ctxBg)
 			require.NoError(t, err)
@@ -249,16 +249,37 @@ func TestElmaApp(t *testing.T) {
 
 				t.Run("date", func(t *testing.T) {
 
-					augustTheFirst, err := time.Parse(time.RFC3339, "2023-08-01T00:00:00Z")
-					require.NoError(t, err)
-					items, err := goods.Search().Where(SearchFilter{
-						Fields: Fields{
-							"__createdAt": Field.Date().To(augustTheFirst),
-						},
-					}).All(ctxBg)
+					t.Run("in_range", func(t *testing.T) {
 
-					require.NoError(t, err)
-					require.Equal(t, 5, len(items))
+						augustTheFirst, err := time.Parse(time.RFC3339, "2023-08-01T00:00:00Z")
+						require.NoError(t, err)
+						count, err := goods.Search().Where(SearchFilter{
+							Fields: Fields{
+								"__createdAt": Field.DateTime().To(augustTheFirst),
+							},
+						}).Count(ctxBg)
+
+						require.NoError(t, err)
+						require.Equal(t, 5, count)
+
+					})
+
+					t.Run("equal", func(t *testing.T) {
+
+						sep24, err := time.Parse(time.RFC3339, "2023-09-24T12:00:00Z")
+						require.NoError(t, err)
+
+						require.NoError(t, err)
+						count, err := goods.Search().Where(SearchFilter{
+							Fields: Fields{
+								"__createdAt": Field.DateTime().EqualDate(sep24),
+							},
+						}).Count(ctxBg)
+
+						require.NoError(t, err)
+						require.Equal(t, 5, count)
+
+					})
 
 				})
 
@@ -292,7 +313,7 @@ func TestElmaApp(t *testing.T) {
 
 			t.Run("complex", func(t *testing.T) {
 
-				t.Run("number_date_status", func(t *testing.T) {
+				t.Run("number_date_atStatus", func(t *testing.T) {
 
 					aug15, err := time.Parse(time.DateOnly, "2023-08-15")
 					require.NoError(t, err)
@@ -302,7 +323,7 @@ func TestElmaApp(t *testing.T) {
 
 					items, err := goods.Search().Where(SearchFilter{
 						Fields: Fields{
-							"__createdAt": Field.Date().From(aug15).To(aug31),
+							"__createdAt": Field.DateTime().From(aug15).To(aug31),
 							"price":       Field.Number().From(20),
 						},
 						AtStatus: []string{"st1"},
@@ -313,12 +334,9 @@ func TestElmaApp(t *testing.T) {
 
 				})
 
-				t.Run("ids_sorted", func(t *testing.T) {
+				t.Run("ids_sortedNumber", func(t *testing.T) {
 
 					item, err := goods.Search().Where(SearchFilter{
-						//Fields: Fields{
-						//	"categ": Field.Category("one"),
-						//},
 						IDs: []string{
 							"26cc4e77-0f02-44ae-a92f-0a34b8a6f4fc",
 							"b937afb7-df6e-4c95-9076-5018f36a6ee7",
@@ -353,6 +371,19 @@ func TestElmaApp(t *testing.T) {
 
 				})
 
+				t.Run("sortedDate_atStatus", func(t *testing.T) {
+					item, err := goods.Search().
+						Where(SearchFilter{
+							SortExpressions: []SortExpression{
+								{Field: "__createdAt", Ascending: false},
+							},
+							AtStatus: []string{"st2"},
+						}).
+						First(ctxBg)
+					require.NoError(t, err)
+					require.Equal(t, "018acae9-36a5-e386-ff42-04516f217894", item.ID)
+				})
+
 			})
 
 		})
@@ -362,7 +393,7 @@ func TestElmaApp(t *testing.T) {
 			require.NoError(t, err)
 			items, err := goods.Search().
 				Where(SearchFilter{Fields: Fields{
-					"__createdAt": Field.Date().To(aug30),
+					"__createdAt": Field.DateTime().To(aug30),
 				}}).
 				AllAtOnce(ctxBg, 10)
 			require.NoError(t, err)

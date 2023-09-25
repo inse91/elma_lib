@@ -64,7 +64,7 @@ func (f Fields) MarshalJSON() ([]byte, error) {
 type fielder interface {
 	Category(code string) string
 	App(id string) [1]string
-	Date() appDateFilter
+	DateTime() appDateFilter
 	Number() appNumberFilter
 }
 
@@ -84,7 +84,7 @@ func (f fieldIface) App(id string) [1]string {
 }
 
 // Date фильтр для полей типа "Дата"
-func (f fieldIface) Date() appDateFilter {
+func (f fieldIface) DateTime() appDateFilter {
 	return appDateFilter{
 		"min": "1970-01-01",
 		"max": "3000-01-01",
@@ -134,8 +134,10 @@ func (adf appDateFilter) To(date time.Time) appDateFilter {
 	return adf
 }
 
-// Equal позволяет задать равенство для полей типа "Дата" (опционально)
-func (adf appDateFilter) Equal(date time.Time) appDateFilter {
-	adf["max"] = date.UTC().Format(time.DateOnly)
-	return adf
+// EqualDate позволяет задать равенство для полей типа "Дата" (опционально) с точностью до одного дня
+func (adf appDateFilter) EqualDate(date time.Time) appDateFilter {
+	oneDay := time.Hour * 24
+	start := date.Truncate(oneDay)
+	end := start.Add(oneDay)
+	return adf.From(start).To(end)
 }
