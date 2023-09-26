@@ -1,4 +1,4 @@
-module elma_lib
+module github.com/inse91/elma_lib
 
 go 1.20
 
