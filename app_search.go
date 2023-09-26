@@ -98,8 +98,6 @@ func (s searchInstance[T]) AllAtOnce(ctx context.Context, goroutineLimit int) ([
 			}
 			if len(items) == 0 {
 				return nil
-				//cancel()
-				//return ErrNoMoreItems
 			}
 			mu.Lock()
 			defer mu.Unlock()

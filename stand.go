@@ -8,8 +8,7 @@ import (
 type stand struct {
 	host string
 	port string
-	//_token string
-	h http.Header
+	h    http.Header
 }
 
 var testDefaultStandSettings = StandConfig{
@@ -37,7 +36,6 @@ func (s stand) header() http.Header {
 
 type Stand interface {
 	url() string
-	//token() string
 	header() http.Header
 }
 

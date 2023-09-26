@@ -32,7 +32,7 @@ type App[T interface{}] struct {
 	}
 }
 
-// NewApp creates new adapter for interaction with app in elma, where T is app Context
+// NewApp создает адаптер к приложению, где T - это его контекст
 func NewApp[T interface{}](settings Settings) App[T] {
 	url := settings.toAppUrl()
 	return App[T]{
@@ -40,7 +40,6 @@ func NewApp[T interface{}](settings Settings) App[T] {
 		url:   url,
 		client: &http.Client{
 			Timeout: time.Second * 5,
-			//Timeout: time.Millisecond * 100,
 		},
 		method: struct {
 			create    string
@@ -75,7 +74,6 @@ func (app App[T]) Create(ctx context.Context, item T) (T, error) {
 	if err != nil {
 		return nilT, err
 	}
-
 	if !ir.Success {
 		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
 	}
@@ -138,7 +136,6 @@ func (app App[T]) Update(ctx context.Context, id string, item T) (T, error) {
 	if err != nil {
 		return nilT, err
 	}
-
 	if !ir.Success {
 		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
 	}
@@ -174,7 +171,6 @@ func (app App[T]) SetStatus(ctx context.Context, id, code string) (T, error) {
 	if err != nil {
 		return nilT, err
 	}
-
 	if !ir.Success {
 		return nilT, wrap(ir.Error, ErrResponseNotSuccess)
 	}
@@ -195,7 +191,6 @@ func (app App[T]) GetStatusInfo(ctx context.Context) (StatusInfo, error) {
 	if err != nil {
 		return StatusInfo{}, err
 	}
-
 	if !gsr.Success {
 		return StatusInfo{}, wrap(gsr.Error, ErrResponseNotSuccess)
 	}
